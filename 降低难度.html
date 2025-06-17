@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞翔的小鸟 - 可调节难度版</title>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <style>
+        /* 基础样式 */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Ma Shan Zheng', cursive, sans-serif;
+            background: linear-gradient(to bottom, #71C5CF, #4A87B8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+        }
+
+        .game-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2/3;
+            max-height: 90vh;
+            background-color: #71C5CF;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* 屏幕样式 */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 10;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 标题样式 */
+        .game-title {
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            color: #FFC107;
+            margin-bottom: 2rem;
+            text-shadow: 3px 3px 0 #000;
+            text-align: center;
+        }
+
+        .game-over-title, .pause-title, .settings-title {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            color: #F44336;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        /* 按钮样式 */
+        .game-button {
+            font-family: 'Ma Shan Zheng', cursive, sans-serif;
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
+            padding: 1rem 2rem;
+            margin: 0.5rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 #2E7D32;
+        }
+
+        .game-button:hover {
+            background-color: #45a049;
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #2E7D32;
+        }
+
+        .game-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 #2E7D32;
+        }
+
+        .quit-button {
+            background-color: #F44336;
+            box-shadow: 0 4px 0 #D32F2F;
+        }
+
+        .settings-button {
+            background-color: #2196F3;
+            box-shadow: 0 4px 0 #0b7dda;
+        }
+
+        .quit-button:hover {
+            background-color: #e53935;
+            box-shadow: 0 2px 0 #D32F2F;
+        }
+
+        .settings-button:hover {
+            background-color: #0b7dda;
+            box-shadow: 0 2px 0 #0b7dda;
+        }
+
+        .quit-button:active {
+            box-shadow: 0 0px 0 #D32F2F;
+        }
+
+        /* 预览和指令 */
+        .bird-preview {
+            width: 4rem;
+            height: 4rem;
+            background-color: #FFC107;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            animation: bounce 1s infinite alternate;
+        }
+
+        .bird-preview i {
+            font-size: 2rem;
+            color: #212121;
+        }
+
+        .instruction {
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            color: white;
+            margin-bottom: 2rem;
+            text-align: center;
+            padding: 0 1rem;
+            line-height: 1.6;
+        }
+
+        /* 分数板 */
+        .score-board {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        .score-text {
+            font-size: clamp(0.9rem, 2vw, 1.2rem);
+            color: white;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .score-value {
+            color: #FFC107;
+            font-weight: bold;
+        }
+
+        /* 游戏UI */
+        .game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .pause-button {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .pause-button:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .score-display {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-size: clamp(0.8rem, 2vw, 1rem);
+        }
+
+        .current-score {
+            color: #FFC107;
+            font-weight: bold;
+        }
+
+        /* 动画 */
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-15px); }
+        }
+
+        @keyframes scorePop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        .score-pop {
+            animation: scorePop 0.3s ease-out;
+        }
+
+        @keyframes gameOverShake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .game-over-shake {
+            animation: gameOverShake 0.5s ease-out;
+        }
+
+        /* 难度提示 */
+        .difficulty-hint {
+            background-color: rgba(76, 175, 80, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        /* 设置面板 */
+        .settings-panel {
+            background-color: rgba(0, 0, 0, 0.85);
+            border-radius: 10px;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .settings-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .settings-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        
+        .slider-container {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 10px;
+            background: #333;
+            outline: none;
+            border-radius: 5px;
+        }
+        
+        .value-display {
+            display: inline-block;
+            min-width: 40px;
+            text-align: right;
+            color: #FFC107;
+            font-weight: bold;
+        }
+        
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        
+        .reset-button {
+            background-color: #9e9e9e;
+            box-shadow: 0 4px 0 #616161;
+        }
+        
+        .reset-button:hover {
+            background-color: #757575;
+            box-shadow: 0 2px 0 #616161;
+        }
+        
+        .settings-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* 自定义滑块样式 */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FFC107;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        
+        input[type=range]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FFC107;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+    </style>
+</head>
+<body class="game-container">
+    <div class="game-wrapper">
+        <!-- 游戏画布 -->
+        <canvas id="gameCanvas" class="game-canvas"></canvas>
+        
+        <!-- 开始屏幕 -->
+        <div id="startScreen" class="screen start-screen">
+            <h1 class="game-title">飞翔的小鸟</h1>
+            <div class="bird-preview">
+                <i class="fa fa-paper-plane-o"></i>
+            </div>
+            <p class="instruction">按空格键或点击屏幕让小鸟飞翔<br>避开管道，飞得越远越好！</p>
+            <button id="startButton" class="game-button">开始游戏</button>
+            <button id="settingsButton" class="game-button settings-button">游戏设置</button>
+            <div class="difficulty-hint">难度已降低，适合新手</div>
+        </div>
+        
+        <!-- 游戏结束屏幕 -->
+        <div id="gameOverScreen" class="screen game-over-screen hidden">
+            <h2 class="game-over-title">游戏结束</h2>
+            <div class="score-board">
+                <p class="score-text">分数: <span id="finalScore" class="score-value">0</span></p>
+                <p class="score-text">最高分: <span id="bestScore" class="score-value">0</span></p>
+            </div>
+            <button id="restartButton" class="game-button">再来一局</button>
+            <button id="toSettingsButton" class="game-button settings-button">游戏设置</button>
+        </div>
+        
+        <!-- 游戏暂停屏幕 -->
+        <div id="pauseScreen" class="screen pause-screen hidden">
+            <h2 class="pause-title">游戏暂停</h2>
+            <button id="resumeButton" class="game-button">继续游戏</button>
+            <button id="pauseSettingsButton" class="game-button settings-button">游戏设置</button>
+            <button id="quitButton" class="game-button quit-button">退出游戏</button>
+        </div>
+        
+        <!-- 设置屏幕 -->
+        <div id="settingsScreen" class="screen settings-screen hidden">
+            <button class="settings-close" id="closeSettings">
+                <i class="fa fa-times"></i>
+            </button>
+            <h2 class="settings-title">游戏设置</h2>
+            <div class="settings-panel">
+                <div class="settings-group">
+                    <div class="settings-label">
+                        <span>重力:</span>
+                        <span id="gravityValue" class="value-display">0.22</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" min="0.1" max="0.5" step="0.01" value="0.22" class="slider" id="gravitySlider">
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <div class="settings-label">
+                        <span>跳跃力度:</span>
+                        <span id="jumpValue" class="value-display">-5.2</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" min="-8" max="-3" step="0.1" value="-5.2" class="slider" id="jumpSlider">
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <div class="settings-label">
+                        <span>管道间隙:</span>
+                        <span id="gapValue" class="value-display">150</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" min="100" max="200" step="5" value="150" class="slider" id="gapSlider">
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <div class="settings-label">
+                        <span>管道速度:</span>
+                        <span id="speedValue" class="value-display">1.8</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="5" step="0.1" value="1.8" class="slider" id="speedSlider">
+                    </div>
+                </div>
+                
+                <div class="settings-group">
+                    <div class="settings-label">
+                        <span>生成频率:</span>
+                        <span id="spawnValue" class="value-display">150</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" min="100" max="250" step="10" value="150" class="slider" id="spawnSlider">
+                    </div>
+                </div>
+                
+                <div class="settings-row">
+                    <button id="resetSettings" class="game-button reset-button">重置设置</button>
+                    <button id="saveSettings" class="game-button">保存设置</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 游戏UI -->
+        <div id="gameUI" class="game-ui hidden">
+            <button id="pauseButton" class="pause-button">
+                <i class="fa fa-pause"></i>
+            </button>
+            <div class="score-display">
+                分数: <span id="scoreDisplay" class="current-score">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 获取DOM元素
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const startScreen = document.getElementById('startScreen');
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const pauseScreen = document.getElementById('pauseScreen');
+            const settingsScreen = document.getElementById('settingsScreen');
+            const gameUI = document.getElementById('gameUI');
+            const startButton = document.getElementById('startButton');
+            const restartButton = document.getElementById('restartButton');
+            const pauseButton = document.getElementById('pauseButton');
+            const resumeButton = document.getElementById('resumeButton');
+            const quitButton = document.getElementById('quitButton');
+            const settingsButton = document.getElementById('settingsButton');
+            const toSettingsButton = document.getElementById('toSettingsButton');
+            const pauseSettingsButton = document.getElementById('pauseSettingsButton');
+            const saveSettings = document.getElementById('saveSettings');
+            const resetSettings = document.getElementById('resetSettings');
+            const closeSettings = document.getElementById('closeSettings');
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            const finalScore = document.getElementById('finalScore');
+            const bestScore = document.getElementById('bestScore');
+            
+            // 设置画布尺寸
+            canvas.width = 320;
+            canvas.height = 480;
+            
+            // 游戏状态
+            let gameState = 'start'; // start, playing, paused, gameOver, settings
+            let score = 0;
+            let best = localStorage.getItem('flappyBirdBest') || 0;
+            bestScore.textContent = best;
+            
+            // 游戏设置 - 默认值
+            let gameSettings = {
+                gravity: 0.22,
+                jump: -5.2,
+                pipeGap: 150,
+                pipeSpeed: 1.8,
+                pipeSpawnRate: 150
+            };
+            
+            // 加载保存的设置
+            function loadSettings() {
+                const savedSettings = localStorage.getItem('flappyBirdSettings');
+                if (savedSettings) {
+                    gameSettings = JSON.parse(savedSettings);
+                    updateSettingsUI();
+                }
+            }
+            
+            // 保存设置到本地存储
+            function saveGameSettings() {
+                localStorage.setItem('flappyBirdSettings', JSON.stringify(gameSettings));
+            }
+            
+            // 更新设置界面
+            function updateSettingsUI() {
+                document.getElementById('gravitySlider').value = gameSettings.gravity;
+                document.getElementById('jumpSlider').value = gameSettings.jump;
+                document.getElementById('gapSlider').value = gameSettings.pipeGap;
+                document.getElementById('speedSlider').value = gameSettings.pipeSpeed;
+                document.getElementById('spawnSlider').value = gameSettings.pipeSpawnRate;
+                
+                document.getElementById('gravityValue').textContent = gameSettings.gravity.toFixed(2);
+                document.getElementById('jumpValue').textContent = gameSettings.jump.toFixed(1);
+                document.getElementById('gapValue').textContent = gameSettings.pipeGap;
+                document.getElementById('speedValue').textContent = gameSettings.pipeSpeed.toFixed(1);
+                document.getElementById('spawnValue').textContent = gameSettings.pipeSpawnRate;
+            }
+            
+            // 粒子系统
+            const particles = [];
+            
+            // 游戏元素
+            const bird = {
+                x: 50,
+                y: canvas.height / 2,
+                width: 30,
+                height: 24,
+                velocity: 0,
+                rotation: 0,
+                animationFrame: 0,
+                animationSpeed: 0.2,
+                
+                update() {
+                    // 更新动画帧
+                    this.animationFrame += this.animationSpeed;
+                    if (this.animationFrame >= 3) {
+                        this.animationFrame = 0;
+                    }
+                    
+                    // 应用重力
+                    this.velocity += gameSettings.gravity;
+                    this.y += this.velocity;
+                    
+                    // 限制小鸟在画布内
+                    if (this.y < 0) {
+                        this.y = 0;
+                        this.velocity = 0;
+                    }
+                    
+                    // 更新旋转角度
+                    if (this.velocity < 0) {
+                        // 上升时朝上
+                        this.rotation = Math.max(-25, this.velocity * 2);
+                    } else {
+                        // 下降时朝下
+                        this.rotation = Math.min(90, this.velocity * 5);
+                    }
+                },
+                
+                flap() {
+                    this.velocity = gameSettings.jump;
+                    // 添加跳跃粒子效果
+                    createParticles(this.x + this.width/2, this.y + this.height/2, 5, '#FFC107');
+                },
+                
+                draw() {
+                    ctx.save();
+                    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                    ctx.rotate(this.rotation * Math.PI / 180);
+                    
+                    // 绘制小鸟
+                    ctx.fillStyle = '#FFC107';
+                    ctx.beginPath();
+                    ctx.moveTo(-this.width / 2, -this.height / 2);
+                    ctx.lineTo(this.width / 2, 0);
+                    ctx.lineTo(-this.width / 2, this.height / 2);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // 眼睛
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.beginPath();
+                    ctx.arc(this.width / 4, -this.height / 4, this.width / 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#000000';
+                    ctx.beginPath();
+                    ctx.arc(this.width / 4 + this.width / 20, -this.height / 4, this.width / 20, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 喙
+                    ctx.fillStyle = '#FF5722';
+                    ctx.beginPath();
+                    ctx.moveTo(this.width / 2, 0);
+                    ctx.lineTo(this.width / 2 + this.width / 4, this.height / 4);
+                    ctx.lineTo(this.width / 2 + this.width / 4, -this.height / 4);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.restore();
+                },
+                
+                reset() {
+                    this.x = 50;
+                    this.y = canvas.height / 2;
+                    this.velocity = 0;
+                    this.rotation = 0;
+                    this.animationFrame = 0;
+                }
+            };
+            
+            // 管道
+            const pipes = [];
+            const pipeWidth = 60;
+            const pipeHeight = 320;
+            let pipeTimer = 0;
+            
+            // 背景
+            const background = {
+                x1: 0,
+                x2: canvas.width,
+                y: 0,
+                width: canvas.width,
+                height: canvas.height,
+                speed: 1,
+                
+                update() {
+                    this.x1 -= this.speed;
+                    this.x2 -= this.speed;
+                    
+                    if (this.x1 <= -this.width) {
+                        this.x1 = this.width;
+                    }
+                    if (this.x2 <= -this.width) {
+                        this.x2 = this.width;
+                    }
+                },
+                
+                draw() {
+                    // 天空
+                    ctx.fillStyle = '#71C5CF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 云
+                    ctx.fillStyle = '#FFFFFF';
+                    
+                    // 云1
+                    ctx.beginPath();
+                    ctx.arc(this.x1 + 80, 80, 30, 0, Math.PI * 2);
+                    ctx.arc(this.x1 + 120, 80, 40, 0, Math.PI * 2);
+                    ctx.arc(this.x1 + 160, 80, 30, 0, Math.PI * 2);
+                    ctx.arc(this.x1 + 140, 110, 30, 0, Math.PI * 2);
+                    ctx.arc(this.x1 + 100, 110, 30, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 云2
+                    ctx.beginPath();
+                    ctx.arc(this.x2 + 80, 120, 30, 0, Math.PI * 2);
+                    ctx.arc(this.x2 + 120, 120, 40, 0, Math.PI * 2);
+                    ctx.arc(this.x2 + 160, 120, 30, 0, Math.PI * 2);
+                    ctx.arc(this.x2 + 140, 150, 30, 0, Math.PI * 2);
+                    ctx.arc(this.x2 + 100, 150, 30, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            };
+            
+            // 地面
+            const ground = {
+                x1: 0,
+                x2: canvas.width,
+                y: canvas.height - 60,
+                width: canvas.width,
+                height: 60,
+                speed: 2,
+                
+                update() {
+                    this.x1 -= this.speed;
+                    this.x2 -= this.speed;
+                    
+                    if (this.x1 <= -this.width) {
+                        this.x1 = this.width;
+                    }
+                    if (this.x2 <= -this.width) {
+                        this.x2 = this.width;
+                    }
+                },
+                
+                draw() {
+                    // 地面
+                    ctx.fillStyle = '#966F33';
+                    ctx.fillRect(this.x1, this.y, this.width, this.height);
+                    ctx.fillRect(this.x2, this.y, this.width, this.height);
+                    
+                    // 草
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.fillRect(this.x1, this.y, this.width, 10);
+                    ctx.fillRect(this.x2, this.y, this.width, 10);
+                    
+                    // 线条装饰
+                    ctx.strokeStyle = '#795548';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x1, this.y + 20);
+                    ctx.lineTo(this.x1 + this.width, this.y + 20);
+                    ctx.moveTo(this.x1, this.y + 40);
+                    ctx.lineTo(this.x1 + this.width, this.y + 40);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(this.x2, this.y + 20);
+                    ctx.lineTo(this.x2 + this.width, this.y + 20);
+                    ctx.moveTo(this.x2, this.y + 40);
+                    ctx.lineTo(this.x2 + this.width, this.y + 40);
+                    ctx.stroke();
+                }
+            };
+            
+            // 创建粒子函数
+            function createParticles(x, y, count, color) {
+                for (let i = 0; i < count; i++) {
+                    particles.push({
+                        x: x,
+                        y: y,
+                        size: Math.random() * 3 + 1,
+                        speedX: (Math.random() - 0.5) * 3,
+                        speedY: (Math.random() - 0.5) * 3,
+                        color: color,
+                        life: 20
+                    });
+                }
+            }
+            
+            // 碰撞检测
+            function checkCollision(bird, pipe) {
+                // 简化小鸟为圆形进行碰撞检测
+                const birdCenterX = bird.x + bird.width/2;
+                const birdCenterY = bird.y + bird.height/2;
+                const birdRadius = bird.width/2 * 0.8; // 使用80%半径
+                
+                // 检测上管道
+                if (birdCenterX + birdRadius > pipe.x && 
+                    birdCenterX - birdRadius < pipe.x + pipeWidth) {
+                    if (birdCenterY - birdRadius < pipe.topHeight) {
+                        return true;
+                    }
+                }
+                
+                // 检测下管道
+                if (birdCenterX + birdRadius > pipe.x && 
+                    birdCenterX - birdRadius < pipe.x + pipeWidth) {
+                    if (birdCenterY + birdRadius > pipe.bottomY) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 生成管道
+            function spawnPipe() {
+                const randomY = Math.floor(Math.random() * (canvas.height / 3)) + canvas.height / 6;
+                
+                pipes.push({
+                    x: canvas.width,
+                    topY: 0,
+                    topHeight: randomY,
+                    bottomY: randomY + gameSettings.pipeGap,
+                    bottomHeight: canvas.height - randomY - gameSettings.pipeGap - ground.height,
+                    passed: false
+                });
+                
+                pipeTimer = 0;
+            }
+            
+            // 更新游戏状态
+            function update() {
+                if (gameState !== 'playing') return;
+                
+                // 更新背景
+                background.update();
+                
+                // 更新地面
+                ground.update();
+                
+                // 更新小鸟
+                bird.update();
+                
+                // 更新粒子
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].x += particles[i].speedX;
+                    particles[i].y += particles[i].speedY;
+                    particles[i].life--;
+                    
+                    if (particles[i].life <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+                
+                // 生成管道
+                pipeTimer++;
+                if (pipeTimer >= gameSettings.pipeSpawnRate) {
+                    spawnPipe();
+                }
+                
+                // 更新管道
+                for (let i = 0; i < pipes.length; i++) {
+                    const pipe = pipes[i];
+                    pipe.x -= gameSettings.pipeSpeed;
+                    
+                    // 检测是否通过管道
+                    if (pipe.x + pipeWidth < bird.x && !pipe.passed) {
+                        pipe.passed = true;
+                        score++;
+                        scoreDisplay.textContent = score;
+                        scoreDisplay.classList.add('score-pop');
+                        setTimeout(() => scoreDisplay.classList.remove('score-pop'), 300);
+                    }
+                    
+                    // 移除离开画布的管道
+                    if (pipe.x + pipeWidth < 0) {
+                        pipes.splice(i, 1);
+                        i--;
+                    }
+                }
+                
+                // 检测碰撞
+                // 地面碰撞
+                if (bird.y + bird.height > ground.y) {
+                    createParticles(bird.x + bird.width/2, bird.y + bird.height/2, 20, '#FF5722');
+                    gameOver();
+                }
+                
+                // 管道碰撞
+                for (let i = 0; i < pipes.length; i++) {
+                    const pipe = pipes[i];
+                    
+                    if (checkCollision(bird, pipe)) {
+                        createParticles(bird.x + bird.width/2, bird.y + bird.height/2, 30, '#F44336');
+                        gameOver();
+                        break;
+                    }
+                }
+            }
+            
+            // 绘制游戏
+            function draw() {
+                // 清空画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制背景
+                background.draw();
+                
+                // 绘制管道
+                for (let i = 0; i < pipes.length; i++) {
+                    const pipe = pipes[i];
+                    
+                    // 上管道
+                    ctx.fillStyle = '#2E7D32';
+                    ctx.fillRect(pipe.x, pipe.topY, pipeWidth, pipe.topHeight);
+                    
+                    // 管道顶部
+                    ctx.fillStyle = '#388E3C';
+                    ctx.fillRect(pipe.x - 5, pipe.topHeight - 10, pipeWidth + 10, 10);
+                    
+                    // 下管道
+                    ctx.fillStyle = '#2E7D32';
+                    ctx.fillRect(pipe.x, pipe.bottomY, pipeWidth, pipe.bottomHeight);
+                    
+                    // 管道顶部
+                    ctx.fillStyle = '#388E3C';
+                    ctx.fillRect(pipe.x - 5, pipe.bottomY, pipeWidth + 10, 10);
+                    
+                    // 管道纹理
+                    ctx.strokeStyle = '#266129';
+                    ctx.lineWidth = 2;
+                    for (let j = 10; j < pipe.topHeight - 10; j += 20) {
+                        ctx.beginPath();
+                        ctx.moveTo(pipe.x + 10, pipe.topY + j);
+                        ctx.lineTo(pipe.x + pipeWidth - 10, pipe.topY + j);
+                        ctx.stroke();
+                    }
+                    
+                    for (let j = 10; j < pipe.bottomHeight - 10; j += 20) {
+                        ctx.beginPath();
+                        ctx.moveTo(pipe.x + 10, pipe.bottomY + j);
+                        ctx.lineTo(pipe.x + pipeWidth - 10, pipe.bottomY + j);
+                        ctx.stroke();
+                    }
+                }
+                
+                // 绘制粒子
+                for (const particle of particles) {
+                    ctx.fillStyle = particle.color;
+                    ctx.globalAlpha = particle.life / 20;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1.0;
+                
+                // 绘制地面
+                ground.draw();
+                
+                // 绘制小鸟
+                bird.draw();
+                
+                // 如果游戏暂停，显示半透明遮罩
+                if (gameState === 'paused') {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            
+            // 游戏循环
+            function gameLoop() {
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            // 开始游戏
+            function startGame() {
+                gameState = 'playing';
+                startScreen.classList.add('hidden');
+                gameOverScreen.classList.add('hidden');
+                settingsScreen.classList.add('hidden');
+                gameUI.classList.remove('hidden');
+                score = 0;
+                scoreDisplay.textContent = score;
+                pipes.length = 0;
+                particles.length = 0;
+                bird.reset();
+                pipeTimer = gameSettings.pipeSpawnRate;
+            }
+            
+            // 游戏结束
+            function gameOver() {
+                gameState = 'gameOver';
+                gameOverScreen.classList.remove('hidden');
+                gameOverScreen.classList.add('game-over-shake');
+                setTimeout(() => gameOverScreen.classList.remove('game-over-shake'), 500);
+                finalScore.textContent = score;
+                
+                // 更新最高分
+                if (score > best) {
+                    best = score;
+                    bestScore.textContent = best;
+                    localStorage.setItem('flappyBirdBest', best);
+                }
+            }
+            
+            // 暂停游戏
+            function pauseGame() {
+                if (gameState === 'playing') {
+                    gameState = 'paused';
+                    pauseScreen.classList.remove('hidden');
+                }
+            }
+            
+            // 恢复游戏
+            function resumeGame() {
+                if (gameState === 'paused') {
+                    gameState = 'playing';
+                    pauseScreen.classList.add('hidden');
+                }
+            }
+            
+            // 退出游戏
+            function quitGame() {
+                gameState = 'start';
+                gameUI.classList.add('hidden');
+                gameOverScreen.classList.add('hidden');
+                pauseScreen.classList.add('hidden');
+                settingsScreen.classList.add('hidden');
+                startScreen.classList.remove('hidden');
+                pipes.length = 0;
+                particles.length = 0;
+            }
+            
+            // 打开设置
+            function openSettings() {
+                settingsScreen.classList.remove('hidden');
+                gameState = 'settings';
+            }
+            
+            // 关闭设置
+            function closeSettingsFunc() {
+                settingsScreen.classList.add('hidden');
+                if (gameState === 'settings') {
+                    gameState = 'start';
+                    startScreen.classList.remove('hidden');
+                }
+            }
+            
+            // 事件监听
+            startButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', startGame);
+            pauseButton.addEventListener('click', pauseGame);
+            resumeButton.addEventListener('click', resumeGame);
+            quitButton.addEventListener('click', quitGame);
+            settingsButton.addEventListener('click', openSettings);
+            toSettingsButton.addEventListener('click', openSettings);
+            pauseSettingsButton.addEventListener('click', openSettings);
+            closeSettings.addEventListener('click', closeSettingsFunc);
+            
+            // 保存设置
+            saveSettings.addEventListener('click', () => {
+                // 从滑块获取值
+                gameSettings.gravity = parseFloat(document.getElementById('gravitySlider').value);
+                gameSettings.jump = parseFloat(document.getElementById('jumpSlider').value);
+                gameSettings.pipeGap = parseInt(document.getElementById('gapSlider').value);
+                gameSettings.pipeSpeed = parseFloat(document.getElementById('speedSlider').value);
+                gameSettings.pipeSpawnRate = parseInt(document.getElementById('spawnSlider').value);
+                
+                // 更新显示的值
+                updateSettingsUI();
+                
+                // 保存到本地存储
+                saveGameSettings();
+                
+                // 关闭设置屏幕
+                closeSettingsFunc();
+            });
+            
+            // 重置设置
+            resetSettings.addEventListener('click', () => {
+                gameSettings = {
+                    gravity: 0.22,
+                    jump: -5.2,
+                    pipeGap: 150,
+                    pipeSpeed: 1.8,
+                    pipeSpawnRate: 150
+                };
+                updateSettingsUI();
+            });
+            
+            // 滑块事件监听器
+            document.getElementById('gravitySlider').addEventListener('input', function() {
+                document.getElementById('gravityValue').textContent = parseFloat(this.value).toFixed(2);
+            });
+            
+            document.getElementById('jumpSlider').addEventListener('input', function() {
+                document.getElementById('jumpValue').textContent = parseFloat(this.value).toFixed(1);
+            });
+            
+            document.getElementById('gapSlider').addEventListener('input', function() {
+                document.getElementById('gapValue').textContent = this.value;
+            });
+            
+            document.getElementById('speedSlider').addEventListener('input', function() {
+                document.getElementById('speedValue').textContent = parseFloat(this.value).toFixed(1);
+            });
+            
+            document.getElementById('spawnSlider').addEventListener('input', function() {
+                document.getElementById('spawnValue').textContent = this.value;
+            });
+            
+            // 键盘控制
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    if (gameState === 'start') {
+                        startGame();
+                    } else if (gameState === 'playing') {
+                        bird.flap();
+                    } else if (gameState === 'paused') {
+                        resumeGame();
+                    }
+                } else if (e.code === 'KeyP') {
+                    if (gameState === 'playing') {
+                        pauseGame();
+                    } else if (gameState === 'paused') {
+                        resumeGame();
+                    }
+                } else if (e.code === 'Escape' && gameState === 'settings') {
+                    closeSettingsFunc();
+                }
+            });
+            
+            // 鼠标/触摸控制
+            canvas.addEventListener('click', () => {
+                if (gameState === 'start') {
+                    startGame();
+                } else if (gameState === 'playing') {
+                    bird.flap();
+                } else if (gameState === 'paused') {
+                    resumeGame();
+                }
+            });
+            
+            // 触摸设备支持
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (gameState === 'start') {
+                    startGame();
+                } else if (gameState === 'playing') {
+                    bird.flap();
+                } else if (gameState === 'paused') {
+                    resumeGame();
+                }
+            });
+            
+            // 初始化设置
+            loadSettings();
+            
+            // 启动游戏循环
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
